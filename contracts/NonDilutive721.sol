@@ -11,6 +11,7 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 error MintExceedsMaxSupply();
 error MintCostMismatch();
+error MintNotEnabled();
 
 error GenerationAlreadyLoaded();
 error GenerationNotDifferent();
@@ -57,6 +58,8 @@ contract NonDilutive721 is
     uint256 public constant COST = .02 ether;
 
     Generation[] public generations;
+
+    bool public mintOpen;
 
     mapping(uint256 => uint256) tokenIdToGeneration;
     mapping(bytes32 => uint256) tokenIdGenerationToFunded;
@@ -108,6 +111,18 @@ contract NonDilutive721 is
     }
 
     /**
+     * @dev This is the most extreme of the basic sale enables. When using this, you will
+     *      start your sale through Flashbots so that bots cannot backrun you.
+     */
+    function toggleMint()
+        public
+        virtual
+        onlyOwner
+    { 
+        mintOpen = !mintOpen;
+    }
+
+    /**
      * @notice The public minting function of this contract while making sure that
      *         supply is not exceeded and the proper $$ has been supplied.
      */
@@ -116,6 +131,8 @@ contract NonDilutive721 is
         virtual 
         payable 
     {
+        if(!mintOpen) revert MintNotEnabled();
+
         uint256 totalSupply = totalSupply();
 
         if(totalSupply + _count >= MAX_SUPPLY) revert MintExceedsMaxSupply();
