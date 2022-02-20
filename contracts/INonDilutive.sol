@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.7;
 
-interface INonDilutiveGeneration { 
+interface INonDilutive { 
     struct Generation {
         bool loaded;
         bool enabled;

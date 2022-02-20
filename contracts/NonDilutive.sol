@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.7;
 
-import { INonDilutiveGeneration } from "./Generations/INonDilutiveGeneration.sol";
+import { INonDilutive } from "./INonDilutive.sol";
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -47,8 +47,8 @@ error WithdrawFailed();
  *         implementation it is vitally noted that object permanence must be achieved from day one.
  *         A project CANNOT implement this on a mutable URL that is massive holder-trust betrayal.)
  */
-contract NonDilutive721 is 
-     INonDilutiveGeneration 
+contract NonDilutive is 
+     INonDilutive
     ,ERC721Enumerable
     ,Ownable
 {
@@ -289,6 +289,9 @@ contract NonDilutive721 is
         );
     }
 
+    /**
+     * @notice Withdraws the money from this contract to Chance + the owner.
+     */
     function withdraw() 
         public 
         payable 
@@ -306,6 +309,11 @@ contract NonDilutive721 is
         if(!owner) revert WithdrawFailed();
     }
 
+    /**
+     * @notice on chain function to retrieve the tokens that an address owns
+     * @param _owner the holder we are retrieving the tokens for
+     * @return tokenIds this address currently holds
+     */
     function walletOfOwner(address _owner) 
         public 
         view 
@@ -316,10 +324,13 @@ contract NonDilutive721 is
         uint256 tokenCount = balanceOf(_owner);
         if (tokenCount == 0) return new uint256[](0);
 
-        uint256[] memory tokensId = new uint256[](tokenCount);
+        uint256[] memory tokenIds = new uint256[](tokenCount);
         for (uint256 i; i < tokenCount; i++) {
-            tokensId[i] = tokenOfOwnerByIndex(_owner, i);
+            tokenIds[i] = tokenOfOwnerByIndex(
+                 _owner
+                ,i
+            );
         }
-        return tokensId;
+        return tokenIds;
     }
 }
