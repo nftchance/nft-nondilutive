@@ -7,8 +7,6 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 error MintExceedsMaxSupply();
@@ -21,6 +19,7 @@ error GenerationNotDowngradable();
 error GenerationNotToggleable();
 error GenerationCostMismatch();
 
+error NonExistentToken();
 error NotTheOwner();
 error WithdrawFailed();
 
@@ -98,7 +97,7 @@ contract NonDilutive721 is
             string memory _tokenURI
         ) 
     {
-        require(_exists(_tokenId), "This token does not exist.");
+        if(!_exists(_tokenId)) revert NonExistentToken();
 
         _tokenURI = string(
             abi.encodePacked(
@@ -186,8 +185,7 @@ contract NonDilutive721 is
         Generation memory generation = generations[_layerId];
 
         // Make sure that the token isn't locked (immutable but overlapping keywords is spicy)
-
-        if(generation.enabled == true && generation.locked) revert GenerationNotToggleable();
+        if(generation.enabled && generation.locked) revert GenerationNotToggleable();
 
         generation.enabled == !generation.enabled;
     }
