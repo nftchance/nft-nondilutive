@@ -213,7 +213,13 @@ contract NonDilutive721 is
      *  @notice Internal view function to clean up focusGeneration(). Pretty useless but the
      *          function was getting out of control.
      */
-    function _generationEnabled(Generation memory generation) internal view returns (bool) {
+    function _generationEnabled(Generation memory generation) 
+        internal 
+        view 
+        returns (
+            bool
+        ) 
+    {
         if(!generation.enabled) return false;
         if(generation.evolutionClosure != 0) return block.timestamp < generation.evolutionClosure;
         return true;
@@ -266,7 +272,11 @@ contract NonDilutive721 is
         );
     }
 
-    function withdraw() public payable onlyOwner {
+    function withdraw() 
+        public 
+        payable 
+        onlyOwner 
+    {
         /**
          * @dev Pays Chance 5% -- Feel free to remove this or leave it. Up to you. You really don't even need to credit
          *      me in your code. Realistically, you can yoink all of this without me ever knowing or caring. That's why
@@ -279,7 +289,13 @@ contract NonDilutive721 is
         if(!owner) revert WithdrawFailed();
     }
 
-    function walletOfOwner(address _owner) public view returns (uint256[] memory) {
+    function walletOfOwner(address _owner) 
+        public 
+        view 
+        returns (
+            uint256[] memory
+        ) 
+    {
         uint256 tokenCount = balanceOf(_owner);
         if (tokenCount == 0) return new uint256[](0);
 
