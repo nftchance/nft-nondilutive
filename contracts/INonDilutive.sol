@@ -29,14 +29,14 @@ interface INonDilutive {
         uint256 _layerId
     ) external;
 
-    function focusGeneration(
-         uint256 _layerId
-        ,uint256 _tokenId
-    ) external payable;
-
     function getTokenGeneration(
         uint256 _tokenId
     ) external returns (
         uint256
     );
+
+    function focusGeneration(
+         uint256 _layerId
+        ,uint256 _tokenId
+    ) external payable;
 }

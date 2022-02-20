@@ -45,7 +45,7 @@ We now run through the primary contract instead of deploying a new contract that
 | bool        |    locked                |    Makes generation contract-level immutable         |    
 | bool        |    sticky                |    Makes generation holder-level immutable           |    
 | uint256     |    cost                  |    The one-time cost of generation access            |
-| uint256     |    evolutionClosure      |    If zero, infinite tmie to claim.                  |
+| uint256     |    evolutionClosure      |    If zero, infinite time to claim.                  |
 | string      |    baseURI               |    The off-chain URI of the metadata                 |
 
 Beyond that, you should be able to walk yourself the rest of the way through it. Enough talk already, can we just run the code...
