@@ -4,20 +4,25 @@ pragma solidity ^0.8.7;
 
 interface INonDilutiveGeneration { 
     struct Generation {
+        bool loaded;
         bool enabled;
         bool locked;
         bool sticky;
         string baseURI;
-        string name;
+        uint256 cost;
+        uint256 evolutionClosure;
     }
 
     event GenerationChange(uint256 _layerId, uint256 _tokenId);
 
     function loadGeneration(
          uint256 _layerId
+        ,bool _enabled
         ,bool _locked
         ,bool _sticky
         ,string memory _baseURI
+        ,uint256 cost
+        ,uint256 _evolutionClosure
     ) external;
 
     function toggleGeneration(
@@ -27,9 +32,9 @@ interface INonDilutiveGeneration {
     function focusGeneration(
          uint256 _layerId
         ,uint256 _tokenId
-    ) external;
+    ) external payable;
 
-    function fetchGeneration(
+    function getTokenGeneration(
         uint256 _tokenId
     ) external returns (
         uint256
