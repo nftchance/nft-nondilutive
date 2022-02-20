@@ -57,9 +57,9 @@ contract NonDilutive721 is
     uint256 public constant MAX_SUPPLY = 900;
     uint256 public constant COST = .02 ether;
 
-    Generation[] public generations;
-
     bool public mintOpen;
+
+    Generation[] public generations;
 
     mapping(uint256 => uint256) tokenIdToGeneration;
     mapping(bytes32 => uint256) tokenIdGenerationToFunded;
@@ -79,6 +79,8 @@ contract NonDilutive721 is
             ,0              // closure   (can be swapped to forever)
             ,_baseURI
         );
+
+        _mint(owner(), 0);  // mint owner token
     }
 
     /**
