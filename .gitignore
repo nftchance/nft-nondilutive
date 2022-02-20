@@ -1,0 +1,33 @@
+/node_modules
+.env
+
+#Hardhat files
+cache
+artifacts
+redis-stable/
+tornado/
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# redis
+dump.rdb
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
