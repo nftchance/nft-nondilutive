@@ -3,7 +3,7 @@
   "version": "0.1",
   "description": "",
   "scripts": {
-    "client-install": "npx hardhat test"
+    "test": "npx hardhat test"
   },
   "keywords": [],
   "author": "nftchance",
@@ -13,6 +13,9 @@
     "@nomiclabs/hardhat-etherscan": "^2.1.6",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "chai": "^4.3.4",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^3.0.0",
+    "chai-bn": "^0.2.1",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.6",
     "hardhat": "^2.6.2",

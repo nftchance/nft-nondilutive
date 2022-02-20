@@ -9,6 +9,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
+import "hardhat/console.sol";
+
 error MintExceedsMaxSupply();
 error MintCostMismatch();
 error MintNotEnabled();
@@ -59,7 +61,7 @@ contract NonDilutive is
 
     bool public mintOpen;
 
-    Generation[] public generations;
+    mapping(uint256 => Generation) public generations;
 
     mapping(uint256 => uint256) tokenIdToGeneration;
     mapping(bytes32 => uint256) tokenIdGenerationToFunded;
@@ -80,7 +82,7 @@ contract NonDilutive is
             ,_baseURI
         );
 
-        _mint(owner(), 0);  // mint owner token
+        _mint(msg.sender, 0);
     }
 
     /**
@@ -138,7 +140,7 @@ contract NonDilutive is
         uint256 totalSupply = totalSupply();
 
         if(totalSupply + _count >= MAX_SUPPLY) revert MintExceedsMaxSupply();
-        if(msg.value != COST) revert MintCostMismatch();
+        if(msg.value != COST * _count) revert MintCostMismatch();
 
         unchecked {
             for(uint256 i; i < _count; i++) {
@@ -178,15 +180,15 @@ contract NonDilutive is
         // Make sure that we are not overwriting an existing layer.
         if(generations[_layerId].loaded) revert GenerationAlreadyLoaded();
 
-        generations[_layerId] = Generation(
-             true
-            ,_enabled
-            ,_locked
-            ,_sticky
-            ,_cost
-            ,_evolutionClosure
-            ,_baseURI
-        );
+        generations[_layerId] = Generation({
+             loaded: true
+            ,enabled: _enabled
+            ,locked: _locked
+            ,sticky: _sticky
+            ,cost: _cost
+            ,evolutionClosure: _evolutionClosure
+            ,baseURI: _baseURI
+        });
     }
 
     /**
@@ -198,7 +200,6 @@ contract NonDilutive is
     )
         override 
         public 
-        virtual 
         onlyOwner 
     {
         Generation memory generation = generations[_layerId];
@@ -206,7 +207,7 @@ contract NonDilutive is
         // Make sure that the token isn't locked (immutable but overlapping keywords is spicy)
         if(generation.enabled && generation.locked) revert GenerationNotToggleable();
 
-        generation.enabled == !generation.enabled;
+        generations[_layerId].enabled = !generation.enabled;
     }
 
     /**
@@ -223,6 +224,7 @@ contract NonDilutive is
             uint256
         )
     {
+        if(!_exists(_tokenId)) revert NonExistentToken();
         return tokenIdToGeneration[_tokenId];       
     }
 
@@ -265,7 +267,7 @@ contract NonDilutive is
         if(ownerOf(_tokenId) != msg.sender) revert NotTheOwner();
 
         uint256 activeGenerationLayer = tokenIdToGeneration[_tokenId]; 
-        if(activeGenerationLayer != _layerId) revert GenerationNotDifferent();
+        if(activeGenerationLayer == _layerId) revert GenerationNotDifferent();
         
         // Make sure that the generation has been enabled
         Generation memory generation = generations[_layerId];
@@ -298,9 +300,10 @@ contract NonDilutive is
         onlyOwner 
     {
         /**
-         * @dev Pays Chance 5% -- Feel free to remove this or leave it. Up to you. You really don't even need to credit
-         *      me in your code. Realistically, you can yoink all of this without me ever knowing or caring. That's why
-         *      this is open source. But of course, I have to keep on the lights somehow :)
+         * @dev Pays Chance 5% -- Feel free to remove this or leave it. Up to you. You really 
+         *      don't even need to credit me in your code. Realistically, you can yoink all of this 
+         *      without me ever knowing or caring. That's why this is open source. But of course, 
+         *      I have to keep on the lights somehow :)
          */ 
         (bool chance, ) = payable(0x62180042606624f02D8A130dA8A3171e9b33894d).call{value: address(this).balance * 5 / 100}("");
         if(!chance) revert WithdrawFailed();
