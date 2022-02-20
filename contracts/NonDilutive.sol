@@ -199,7 +199,8 @@ contract NonDilutive is
         uint256 _layerId
     )
         override 
-        public 
+        public
+        virtual
         onlyOwner 
     {
         Generation memory generation = generations[_layerId];
