@@ -4,13 +4,13 @@
 
 ## Foreword
 
-This token was created to serve as a proof for a conversational point. Doodles is dropping Space Doodles with the marketing that they are non-dilutive. This is nothing more than quite flismy marketing built on half-accuracies.
+This token was created to serve as a proof for a conversational point. Doodles is dropping Space Doodles with the marketing that they are non-dilutive. This is nothing more than quite flimsy marketing built on half-accuracies.
 
 ![The Space Doodles drop](https://pbs.twimg.com/media/FIln4NFWQAYqyWi?format=jpg&name=4096x4096)
 
-Unfortunately, holders will funnel into this and the market will soon experience a cycle where buyers are constantly buying wrapped tokens thinking they're non-dilutive. Meanwhile, the markets will continue to go down and people will wonder why... This is why. The blind leading the blind.
+Unfortunately, holders will funnel into this and the market will soon experience a cycle where buyers are constantly buying wrapped tokens thinking they're non-dilutive. Meanwhile, the markets will continue to go down and people will wonder why... This is why. 
 
-This repository proposes a different solution. Doodles is an NFT that simply points to off-chain metadata. So, this repository follows in that model to maintain the highest of conversational relevance.
+The blind leading the blind. This repository proposes a different solution. Doodles is an NFT that simply points to off-chain metadata. So, this repository follows in that model to maintain the highest of conversational relevance.
 
 What I am proposing is Mimetic Metadata:
 
@@ -38,7 +38,7 @@ We now run through the primary contract instead of deploying a new contract that
 
 #### Loading a generation
 
-| Type        | Option                   |    Notes
+| Type        | Option                   |    Notes                                             |
 |-------------|--------------------------|------------------------------------------------------|
 | bool        |    loaded                |    Prevents the detachment                           |
 | bool        |    enabled               |    Prevents premature holder connection              |
