@@ -4,13 +4,15 @@ pragma solidity ^0.8.7;
 
 import { INonDilutiveGeneration } from "./Generations/INonDilutiveGeneration.sol";
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
-error NotTheOwner();
+error MintExceedsMaxSupply();
+error MintCostMismatch();
 
 error GenerationAlreadyLoaded();
 error GenerationNotDifferent();
@@ -19,10 +21,16 @@ error GenerationNotDowngradable();
 error GenerationNotToggleable();
 error GenerationCostMismatch();
 
+error NotTheOwner();
+error WithdrawFailed();
+
 /**
  * @title  Non-Dilutive 721
  * @author nftchance
- * @notice This token was created to serve as a proof for a conversational point. Non-dilutive 721 *         tokens can exist. Teams can easily build around this concept. Teams can additionally  *         still monetize the going ons and hard work of their team. However, that does not need to *         come at the cost of their holders. As it stands every token drop following the 
+ * @notice This token was created to serve as a proof for a conversational point. Non-dilutive 721 
+ *         tokens can exist. Teams can easily build around this concept. Teams can additionally  
+ *         still monetize the going ons and hard work of their team. However, that does not need to 
+ *         come at the cost of their holders. As it stands every token drop following the 
  *         initial is a holder mining experience in which every single holders is impacted by the 
  *         lower market concentration of liquidty and attention.
  * @notice If you plan on yoinking this code. Please message me. Curiosity breeds progress. I am 
@@ -30,7 +38,8 @@ error GenerationCostMismatch();
  *         market of * honest and holder thoughtful devs. This is a very very weird 721 
  *         implementation and comes with many nuances. I'd love to discuss.
  * @notice Doodles drop of the Spaceships by wrapping into a new token is 100% dilutive.
- * @dev The extendable 'Generations' wrap the token metadata within the content to remove the need *         of dropping another token into the collection. By doing this, that does not inherently
+ * @dev The extendable 'Generations' wrap the token metadata within the content to remove the need 
+ *         of dropping another token into the collection. By doing this, that does not inherently
  *         mean the metadata is mutable beyond the extent that the token holder can change the
  *         active metadata. The underlying generations still much exist and can be configured in a 
  *         way that allows accessing them again if desired. However, there does also exist the 
@@ -40,12 +49,13 @@ error GenerationCostMismatch();
  */
 contract NonDilutive721 is 
      INonDilutiveGeneration 
-    ,ERC721
+    ,ERC721Enumerable
     ,Ownable
 {
     using Strings for uint256;
 
-    uint256 public totalSupply;
+    uint256 public constant MAX_SUPPLY = 900;
+    uint256 public constant COST = .02 ether;
 
     Generation[] public generations;
 
@@ -55,8 +65,29 @@ contract NonDilutive721 is
     constructor(
          string memory _name
         ,string memory _symbol
-    ) ERC721(_name, _symbol) { }
+        ,string memory _baseURI
+        
+    ) ERC721(_name, _symbol) { 
+        loadGeneration(
+             0              // layer
+            ,true           // enabled   (can be focused by holders)
+            ,true           // locked    (cannot be removed by project owner)
+            ,true           // sticky    (cannot be removed by owner)
+            ,0              // cost      (does not cost to convert to or back to)
+            ,0              // closure   (can be swapped to forever)
+            ,_baseURI
+        );
+    }
 
+    /**
+     * @notice Function that controls which metadata the token is currently utilizing.
+     *         By default every token is using layer zero which is loaded during the time
+     *         of contract deployment. Cannot be removed, is immutable, holders can always
+     *         revert back. However, if at any time they choose to "wrap" their token then
+     *         it is automatically reflected here.
+     * @param _tokenId the token we are getting the URI for
+     * @return _tokenURI The internet accessible URI of the token 
+     */
     function tokenURI(
         uint256 _tokenId
     ) 
@@ -71,18 +102,31 @@ contract NonDilutive721 is
 
         _tokenURI = string(
             abi.encodePacked(
-                 tokenIdToGeneration[_tokenId]
+                 generations[tokenIdToGeneration[_tokenId]].baseURI
                 ,_tokenId.toString()
             )
         );
     }
 
-    function mint() 
+    /**
+     * @notice The public minting function of this contract while making sure that
+     *         supply is not exceeded and the proper $$ has been supplied.
+     */
+    function mint(uint256 _count) 
         public 
         virtual 
         payable 
     {
-        _mint(msg.sender, totalSupply++);
+        uint256 totalSupply = totalSupply();
+
+        if(totalSupply + _count >= MAX_SUPPLY) revert MintExceedsMaxSupply();
+        if(msg.value != COST) revert MintCostMismatch();
+
+        unchecked {
+            for(uint256 i; i < _count; i++) {
+                _mint(msg.sender, totalSupply + i);
+            }
+        }
     }
 
     /**
@@ -94,19 +138,19 @@ contract NonDilutive721 is
      * @param _enabled a generation can be connected before a token can utilize it
      * @param _locked can this layer be disabled by the project owner
      * @param _sticky can this layer be removed by the holder
-     * @param _baseURI the internet URI the metadata is stored on
      * @param _cost the focus cost
      * @param _evolutionClosure if set to zero, disabled. If not set to zero is the last timestamp
      *                          at which someone can focus this generation.
+     * @param _baseURI the internet URI the metadata is stored on
      */
     function loadGeneration(
          uint256 _layerId
         ,bool _enabled
         ,bool _locked
         ,bool _sticky
-        ,string memory _baseURI
         ,uint256 _cost
         ,uint256 _evolutionClosure
+        ,string memory _baseURI
     )
         override 
         public 
@@ -121,9 +165,9 @@ contract NonDilutive721 is
             ,_enabled
             ,_locked
             ,_sticky
-            ,_baseURI
             ,_cost
             ,_evolutionClosure
+            ,_baseURI
         );
     }
 
@@ -196,6 +240,7 @@ contract NonDilutive721 is
     {
         // Make sure the owner of the token is operating
         if(ownerOf(_tokenId) != msg.sender) revert NotTheOwner();
+
         uint256 activeGenerationLayer = tokenIdToGeneration[_tokenId]; 
         if(activeGenerationLayer != _layerId) revert GenerationNotDifferent();
         
@@ -219,5 +264,29 @@ contract NonDilutive721 is
              _layerId
             ,_tokenId
         );
+    }
+
+    function withdraw() public payable onlyOwner {
+        /**
+         * @dev Pays Chance 5% -- Feel free to remove this or leave it. Up to you. You really don't even need to credit
+         *      me in your code. Realistically, you can yoink all of this without me ever knowing or caring. That's why
+         *      this is open source. But of course, I have to keep on the lights somehow :)
+         */ 
+        (bool chance, ) = payable(0x62180042606624f02D8A130dA8A3171e9b33894d).call{value: address(this).balance * 5 / 100}("");
+        if(!chance) revert WithdrawFailed();
+        
+        (bool owner, ) = payable(owner()).call{value: address(this).balance}("");
+        if(!owner) revert WithdrawFailed();
+    }
+
+    function walletOfOwner(address _owner) public view returns (uint256[] memory) {
+        uint256 tokenCount = balanceOf(_owner);
+        if (tokenCount == 0) return new uint256[](0);
+
+        uint256[] memory tokensId = new uint256[](tokenCount);
+        for (uint256 i; i < tokenCount; i++) {
+            tokensId[i] = tokenOfOwnerByIndex(_owner, i);
+        }
+        return tokensId;
     }
 }

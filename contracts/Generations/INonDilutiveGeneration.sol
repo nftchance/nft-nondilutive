@@ -8,9 +8,9 @@ interface INonDilutiveGeneration {
         bool enabled;
         bool locked;
         bool sticky;
-        string baseURI;
         uint256 cost;
         uint256 evolutionClosure;
+        string baseURI;
     }
 
     event GenerationChange(uint256 _layerId, uint256 _tokenId);
@@ -20,9 +20,9 @@ interface INonDilutiveGeneration {
         ,bool _enabled
         ,bool _locked
         ,bool _sticky
-        ,string memory _baseURI
         ,uint256 cost
         ,uint256 _evolutionClosure
+        ,string memory _baseURI
     ) external;
 
     function toggleGeneration(
