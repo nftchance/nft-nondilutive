@@ -112,7 +112,8 @@ contract NonDilutive is
         return uint256(
             keccak256(
                 abi.encodePacked(
-                     _layerId
+                     msg.sender
+                    ,_layerId
                     ,block.number
                     ,block.difficulty
                 )
@@ -161,6 +162,30 @@ contract NonDilutive is
     }
 
     /**
+     * @notice Allows users to calculate the metadata id that is associated with this token
+     *         at all times on any of the layers. This is not code that validates the input
+     *         as it operates like an internal function but has been exposed to holders
+     *         for UX purposes.
+     * @param _offset how far the ids have been shifted
+     * @param _tokenId the token we are getting the generational data for
+     */
+    function getGenerationToken(
+         uint256 _offset
+        ,uint256 _tokenId
+    ) 
+        override
+        public
+        virtual
+        pure
+        returns (
+            uint256 generationTokenId
+        )
+    { 
+        generationTokenId = _tokenId + _offset - 1;
+        if (generationTokenId > MAX_SUPPLY ) generationTokenId - MAX_SUPPLY - 1;
+    }
+
+    /**
      * @notice Function that controls which metadata the token is currently utilizing.
      *         By default every token is using layer zero which is loaded during the time
      *         of contract deployment. Cannot be removed, is immutable, holders can always
@@ -196,9 +221,11 @@ contract NonDilutive is
 
         // Make sure the baseTokenId is within the bounds of MAX_SUPPLY and fix if not
         // Apply the generational offset to the tokens metadata
-        uint256 generationTokenId = _tokenId + activeGeneration.offset - 1;
-        if (generationTokenId > MAX_SUPPLY ) generationTokenId - MAX_SUPPLY - 1;
-
+        uint256 generationTokenId = getGenerationToken(
+             activeGeneration.offset
+            ,_tokenId
+        );
+        
         return string(
             abi.encodePacked(
                  activeGeneration.baseURI

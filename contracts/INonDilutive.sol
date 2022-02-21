@@ -25,6 +25,11 @@ interface INonDilutive {
         ,uint256 _tokenId
     ) external;
 
+    function getGenerationToken(
+         uint256 _offset
+        ,uint256 _tokenId
+    ) external pure returns (uint256 generationTokenId);
+
     function loadGeneration(
          uint256 _layerId
         ,bool _enabled

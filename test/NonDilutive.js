@@ -19,8 +19,10 @@ describe("Non-Dilutive Token", () => {
         contract = await Contract.deploy(
             "Non-Dilutive",
             "No-D",
+            "ipfs://unrevealed/",
             "ipfs://generation-zero/"
         );
+
         contract = await contract.deployed();
     })
 
@@ -92,16 +94,27 @@ describe("Non-Dilutive Token", () => {
 
     it('Validate token uri', async () => { 
         tokenUri = await contract.tokenURI(1);
-        assert.equal(tokenUri, "ipfs://generation-zero/1");
+        assert.equal(tokenUri.includes("ipfs://unrevealed/"), true);
     });
 
-    it('Get token generation', async () => { 
+    it('Reveal generation zero', async () => { 
+        await contract.setRevealed(0, 500);
+        await contract.setRevealed(0, 200).should.be.revertedWith('TokenRevealed');
+    });
+
+    it('Validate token uri after having revealed', async () => { 
+        // get the base token id of this genreation
+        tokenUri = await contract.tokenURI(1);
+        assert.equal(tokenUri.includes(`ipfs://generation-zero/`), true);
+    });
+
+    it('Get token generation', async () => {
         generation = await contract.getTokenGeneration(1);
         assert.equal(generation.toString(), "0");
     });
 
     it('Getting token generation fails for tokens not minted', async () => { 
-        generation = await contract.getTokenGeneration(100).should.be.rejectedWith('NonExistentToken')
+        generation = await contract.getTokenGeneration(100).should.be.rejectedWith('TokenNonExistent')
     });
 
     it('Reconnecting layer zero fails', async () => { 
@@ -160,6 +173,11 @@ describe("Non-Dilutive Token", () => {
         await contract.connect(mintSigner).focusGeneration(1, 1)
     });
 
+    it('Validate token uri is unrevealed after generation 1 upgrade', async () => { 
+        tokenUri = await contract.tokenURI(1);
+        assert.equal(tokenUri.includes("ipfs://unrevealed/"), true);
+    });
+
     it("Can focus generation 0 after upgrading to generation 1", async () => { 
         var mintingAddress = "0x62180042606624f02D8A130dA8A3171e9b33894d"
         await hre.network.provider.request({method: "hardhat_impersonateAccount", params: [mintingAddress],});
@@ -168,7 +186,11 @@ describe("Non-Dilutive Token", () => {
         await contract.connect(mintSigner).focusGeneration(0, 1)
 
         tokenUri = await contract.tokenURI(1);
-        assert.equal(tokenUri, "ipfs://generation-zero/1");
+        assert.equal(tokenUri.includes(`ipfs://generation-zero/`), true);
+    });
+
+    it('Reveal generation 1 assets', async () => { 
+        await contract.setRevealed(1, 500);
     });
 
     it("Can reenable generation 1", async () => { 
@@ -179,7 +201,7 @@ describe("Non-Dilutive Token", () => {
         await contract.connect(mintSigner).focusGeneration(1, 1)
 
         tokenUri = await contract.tokenURI(1);
-        assert.equal(tokenUri, "ipfs://generation-one/1");
+        assert.equal(tokenUri.includes(`ipfs://generation-one/`), true);
     })
 
     it("Load generation 2", async () => { 
@@ -192,6 +214,8 @@ describe("Non-Dilutive Token", () => {
             0,
             'ipfs://generation-two/'
         )
+
+        await contract.setRevealed(2, 500);
     });
 
     it("Focus generation 2 while paying", async () => { 
@@ -202,7 +226,7 @@ describe("Non-Dilutive Token", () => {
         await contract.connect(mintSigner).focusGeneration(2, 1, { value: ethers.utils.parseEther("0.02")});
 
         tokenUri = await contract.tokenURI(1);
-        assert.equal(tokenUri, "ipfs://generation-two/1");
+        assert.equal(tokenUri.includes(`ipfs://generation-two/`), true);
     });
 
     it("Cannot downgrade from generation 2", async () => {
@@ -213,7 +237,7 @@ describe("Non-Dilutive Token", () => {
         await contract.connect(mintSigner).focusGeneration(1, 1).should.be.revertedWith('GenerationNotDowngradable')
 
         tokenUri = await contract.tokenURI(1);
-        assert.equal(tokenUri, "ipfs://generation-two/1");
+        assert.equal(tokenUri.includes(`ipfs://generation-two/`), true);
     });
 
     it("Project owner cannot disable generation 2", async () => { 
