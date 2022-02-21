@@ -11,16 +11,26 @@ interface INonDilutive {
         uint256 cost;
         uint256 evolutionClosure;
         string baseURI;
+        uint256 offset;
+        uint256 top;
     }
 
-    event GenerationChange(uint256 _layerId, uint256 _tokenId);
+    event GenerationChange(
+         uint256 _layerId
+        ,uint256 _tokenId
+    );
+
+    function setRevealed(
+         uint256 _layerId
+        ,uint256 _tokenId
+    ) external;
 
     function loadGeneration(
          uint256 _layerId
         ,bool _enabled
         ,bool _locked
         ,bool _sticky
-        ,uint256 cost
+        ,uint256 _cost
         ,uint256 _evolutionClosure
         ,string memory _baseURI
     ) external;

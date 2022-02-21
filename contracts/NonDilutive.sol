@@ -22,8 +22,11 @@ error GenerationNotDowngradable();
 error GenerationNotToggleable();
 error GenerationCostMismatch();
 
-error NonExistentToken();
-error NotTheOwner();
+error TokenNonExistent();
+error TokenNotRevealed();
+error TokenRevealed();
+error TokenOwnerMismatch();
+
 error WithdrawFailed();
 
 /**
@@ -59,19 +62,22 @@ contract NonDilutive is
     uint256 public constant MAX_SUPPLY = 900;
     uint256 public constant COST = .02 ether;
 
+    string public baseUnrevealedURI;
     bool public mintOpen;
 
     mapping(uint256 => Generation) public generations;
 
-    mapping(uint256 => uint256) tokenIdToGeneration;
-    mapping(bytes32 => uint256) tokenIdGenerationToFunded;
+    mapping(uint256 => uint256) tokenToGeneration;
+    mapping(bytes32 => uint256) tokenGenerationToFunded;
 
     constructor(
          string memory _name
         ,string memory _symbol
+        ,string memory _baseUnrevealedURI
         ,string memory _baseURI
-        
-    ) ERC721(_name, _symbol) { 
+    ) ERC721(_name, _symbol) {
+        baseUnrevealedURI = _baseUnrevealedURI;
+
         loadGeneration(
              0              // layer
             ,true           // enabled   (can be focused by holders)
@@ -86,11 +92,83 @@ contract NonDilutive is
     }
 
     /**
+     * @notice Generates a psuedo-random number that is to be used for the 
+     *         metadata offset. In production, this realistically should be an
+     *         implementation with VRF (Chainlink). It is incredibly easy to setup
+     *         and use, additionally with this structure there is no reason it needs 
+     *         to be expensive.
+     * @dev A focus of psuedo-random number quality has not been a focus. In order for
+     *         for the modulus to even return a fair chance for all #s it must be a 
+     *         power of 2.
+     * @param _layerId the generation the offset is used for.
+     */
+    function _getOffset(
+        uint256 _layerId
+    ) 
+        internal 
+        view 
+        returns (
+            uint256
+        ) 
+    {
+        return uint256(
+            keccak256(
+                abi.encodePacked(
+                     _layerId
+                    ,block.number
+                    ,block.timestamp
+                )
+            )
+        ) % MAX_SUPPLY + 1;
+    }
+
+    /**
+     * @notice Allows for generation-level reveal. That means that just because the assets
+     *         in Generation Zero have been revealed, Generation One is not revealed. The
+     *         reveal mechanisms of them are entirely separate. Precisely like a normal
+     *         ERC721 token.
+     * @notice Cannot be reverted once a token has been revealed. No mutable metadata!
+     * @dev With this implementation it is vital that you implement and utilize an offset.
+     *         This is not something that you can skip because you don't want to work
+     *         with Chainlink or another VRF method. Even if not VRF, you must implement
+     *         at least a generally fair offset mechanism. Holders for the most part
+     *         do not know how Solidity works. That does not mean you take advantage of that.
+     * @param _layerId the generation that is being revealed
+     * @param _topTokenId the highest token id to be revealed
+     */
+    function setRevealed(
+         uint256 _layerId
+        ,uint256 _topTokenId
+    )
+        override
+        public
+        virtual
+        onlyOwner
+    {
+        Generation storage generation = generations[_layerId];
+
+        // Make sure the generation has been loaded and enabled
+        if(!generation.loaded || !generation.enabled) revert GenerationNotEnabled();
+
+        // Make sure that the amount of tokens revealed is not being lowered
+        if(_topTokenId < generation.top) revert TokenRevealed();
+
+        // Make sure that we create the offset the first time a generation is revealed
+        if(generation.offset == 0) {
+            generation.offset = _getOffset(_layerId);
+        } 
+
+        // Finally set the top token of the generation
+        generation.top = _topTokenId;
+    }
+
+    /**
      * @notice Function that controls which metadata the token is currently utilizing.
      *         By default every token is using layer zero which is loaded during the time
      *         of contract deployment. Cannot be removed, is immutable, holders can always
      *         revert back. However, if at any time they choose to "wrap" their token then
      *         it is automatically reflected here.
+     * @notice Errors out if the token has not yet been revealed within this collection.
      * @param _tokenId the token we are getting the URI for
      * @return _tokenURI The internet accessible URI of the token 
      */
@@ -101,15 +179,32 @@ contract NonDilutive is
         public 
         view 
         returns (
-            string memory _tokenURI
+            string memory
         ) 
     {
-        if(!_exists(_tokenId)) revert NonExistentToken();
+        // Make sure that the token has been minted
+        if(!_exists(_tokenId)) revert TokenNonExistent();
+        uint256 activeGenerationLayer = tokenToGeneration[_tokenId];
 
-        _tokenURI = string(
+        // Make sure that the token has been revealed
+        Generation memory activeGeneration = generations[activeGenerationLayer];
+
+        /**
+         * @dev Returns a non-token specific URI that is to be used for unrevealed tokens. This is
+         *      not a case where every generation has it's own unrevealed URI. All generations 
+         *      utilize the same one so that "evolution in progress" is consistent across the collection.
+         */
+        if(_tokenId > activeGeneration.top) return baseUnrevealedURI;
+
+        // Make sure the baseTokenId is within the bounds of MAX_SUPPLY and fix if not
+        // Apply the generational offset to the tokens metadata
+        uint256 generationTokenId = _tokenId + activeGeneration.offset - 1;
+        if (generationTokenId > MAX_SUPPLY ) generationTokenId - MAX_SUPPLY - 1;
+
+        return string(
             abi.encodePacked(
-                 generations[tokenIdToGeneration[_tokenId]].baseURI
-                ,_tokenId.toString()
+                 activeGeneration.baseURI
+                ,generationTokenId.toString()
             )
         );
     }
@@ -188,6 +283,8 @@ contract NonDilutive is
             ,cost: _cost
             ,evolutionClosure: _evolutionClosure
             ,baseURI: _baseURI
+            ,offset: 0
+            ,top: 0
         });
     }
 
@@ -225,8 +322,8 @@ contract NonDilutive is
             uint256
         )
     {
-        if(!_exists(_tokenId)) revert NonExistentToken();
-        return tokenIdToGeneration[_tokenId];       
+        if(!_exists(_tokenId)) revert TokenNonExistent();
+        return tokenToGeneration[_tokenId];       
     }
 
     /**
@@ -265,9 +362,9 @@ contract NonDilutive is
         payable
     {
         // Make sure the owner of the token is operating
-        if(ownerOf(_tokenId) != msg.sender) revert NotTheOwner();
+        if(ownerOf(_tokenId) != msg.sender) revert TokenOwnerMismatch();
 
-        uint256 activeGenerationLayer = tokenIdToGeneration[_tokenId]; 
+        uint256 activeGenerationLayer = tokenToGeneration[_tokenId]; 
         if(activeGenerationLayer == _layerId) revert GenerationNotDifferent();
         
         // Make sure that the generation has been enabled
@@ -280,11 +377,11 @@ contract NonDilutive is
 
         // Make sure they've supplied the right amount of money to unlock access
         bytes32 tokenIdGeneration = keccak256(abi.encodePacked(_tokenId, _layerId));
-        if(msg.value + tokenIdGenerationToFunded[tokenIdGeneration] != generation.cost) revert GenerationCostMismatch();
-        tokenIdGenerationToFunded[tokenIdGeneration] = msg.value;
+        if(msg.value + tokenGenerationToFunded[tokenIdGeneration] != generation.cost) revert GenerationCostMismatch();
+        tokenGenerationToFunded[tokenIdGeneration] = msg.value;
 
         // Finally evolve to the generation
-        tokenIdToGeneration[_tokenId] = _layerId;
+        tokenToGeneration[_tokenId] = _layerId;
 
         emit GenerationChange(
              _layerId
@@ -306,10 +403,18 @@ contract NonDilutive is
          *      without me ever knowing or caring. That's why this is open source. But of course, 
          *      I have to keep on the lights somehow :)
          */ 
-        (bool chance, ) = payable(0x62180042606624f02D8A130dA8A3171e9b33894d).call{value: address(this).balance * 5 / 100}("");
+        (bool chance, ) = payable(
+            0x62180042606624f02D8A130dA8A3171e9b33894d
+        ).call{
+            value: address(this).balance * 5 / 100
+        }("");
         if(!chance) revert WithdrawFailed();
         
-        (bool owner, ) = payable(owner()).call{value: address(this).balance}("");
+        (bool owner, ) = payable(
+            owner()
+        ).call{
+            value: address(this).balance
+        }("");
         if(!owner) revert WithdrawFailed();
     }
 

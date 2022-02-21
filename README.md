@@ -8,21 +8,31 @@ This token was created to serve as a proof for a conversational point. Doodles i
 
 ![The Space Doodles drop](https://pbs.twimg.com/media/FIln4NFWQAYqyWi?format=jpg&name=4096x4096)
 
-Unfortunately, holders will funnel into this and the market will soon experience a cycle where buyers are constantly buying wrapped tokens thinking they're non-dilutive. Meanwhile, the markets will continue to go down and people will wonder why... This is why. 
+Unfortunately, holders will funnel into this and the market will soon experience a cycle where buyers are constantly buying wrapped tokens thinking they're non-dilutive. Meanwhile, the markets will continue to go down and people will wonder why... This is why. Unfortunately, many will perceive this type of launch as genuinely non-dilutive as the argument of collectability will be hammered into the minds of holders and market participants. Congratulations, successfully allowed yet another "Blue Chip" team to force holders into a Ponzi that is going to be protected as their bags now depend on it.
 
-The blind leading the blind. This repository proposes a different solution. Doodles is an NFT that simply points to off-chain metadata. So, this repository follows in that model to maintain the highest of conversational relevance.
+The blind leading the blind. 
+
+This repository proposes a different solution. Doodles is an NFT that simply points to off-chain metadata. So, this repository follows in that model to maintain the highest of conversational relevance.
 
 What I am proposing is Mimetic Metadata:
 
 ![Mimetic metadata](https://i.imgur.com/znXXJwS.png)
 
-Essentially, with Mimetic Metadata we stop printing new tokens and instead pack the metadata within the same token. All within the control of the holder.
+Essentially, with Mimetic Metadata we stop printing new tokens and instead pack the metadata within the same token. All within the control of the holder and project owner without a single massive downside beyond the project creators no longer releasing an asinine amount of tokens into their ecosystem.
 
 >  The extendable 'Generations' wrap the token metadata within the content to remove the need  of dropping another token into the collection. By doing this, that does not inherently mean the metadata is mutable beyond the extent that the token holder can change the active metadata. The underlying generations still much exist and can be configured in a  way that allows accessing them again if desired. However, there does also exist the  ability to have truly immutable layers that cannot be removed. (If following this implementation it is vitally noted that object permanence must be achieved from day one. A project CANNOT implement this on a mutable URL that is massive holder-trust betrayal.)
 
 ## Implementation Documentation
 
 This contract has been built to perfectly illustrate that absolutely no sacrifices are made when implementing this structure. Meanwhile, the holders and project owners gain and incredible amount of security and maintainbility.
+
+Please note, Mimetic Metadata is not created in effort to get projects in a position where they need release another collection. Rather, it should be strategically done that doesn't put their holders "value" in direct danger. With Mimetic Metadata it is simplest to perceive tokens as Avatars. If the addition of the project is not a pivotal piece to the already existing Avatar (that walks or talks) then it potentially does make sense to have a new collection.
+
+Such as:
+
+* Doodle Spaceships belong in the same collection.
+
+* Doodle pets/children belong in a different collection.
 
 ### When deploying
 
@@ -38,17 +48,17 @@ We now run through the primary contract instead of deploying a new contract that
 
 #### Loading a generation
 
-| Type        | Option                   |    Notes                                             |
-|-------------|--------------------------|------------------------------------------------------|
-| bool        |    loaded                |    Prevents the detachment                           |
-| bool        |    enabled               |    Prevents premature holder connection              |
-| bool        |    locked                |    Makes generation contract-level immutable         |    
-| bool        |    sticky                |    Makes generation holder-level immutable           |    
-| uint256     |    cost                  |    The one-time cost of generation access            |
-| uint256     |    evolutionClosure      |    If zero, infinite time to claim.                  |
-| string      |    baseURI               |    The off-chain URI of the metadata                 |
+| Type        | Option                   | Values          | Notes                                             |
+|-------------|--------------------------|-----------------|---------------------------------------------------|
+| bool        |    loaded                | (true, false)   | Prevents the detachment                           |
+| bool        |    enabled               | (true, false)   | Prevents premature holder connection              |
+| bool        |    locked                | (true, false)   | Makes generation contract-level immutable         |    
+| bool        |    sticky                | (true, false)   | Makes generation holder-level immutable           |    
+| uint256     |    cost                  | (0 -> x - 1)    | The one-time cost of generation access            |
+| uint256     |    evolutionClosure      | (0 -> x - 1)    | If zero, infinite time to claim.                  |
+| string      |    baseURI               | ipfs://..       | The off-chain URI of the metadata                 |
 
-Beyond that, you should be able to walk yourself the rest of the way through it. Enough talk already, can we just run the code...
+Beyond that, you should be able to walk yourself the rest of the way through it. This code is not exceptionally complicated. Just steal the code and implement it into the market please. We seriously cannot allow Doodles to spread this falsehood so far that it brings us into a new cycle. With that, enough talk already, can we just run the code...
 
 ## Running The Project
 
