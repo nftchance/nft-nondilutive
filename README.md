@@ -38,13 +38,22 @@ Such as:
 
 The base layer is automatically generated just like a typical NFT contract that you are used to seeing. This layer cannot be disabled, the URI is immutable and holders cannot remove it from their token. This means that a permanent storage solution must be acquired (Whooo more holder security!)
 
+1. Update max supply that can be minted.
+2. Update mint cost.
+3. Deploy with constructor args.
+
 ### When minting
 
 Runs just like normal. Have the ability to implement standard reveal functions such as Chainlink VRF to automatically generate an offset to the image used. This is kind of a hacky solution and a less than ideal solution. Realistically, it would be a lower barrier of entry to have a reveal mechanism built in however this has reached the extent of my midnight jam. Submit a PR.
 
+1. Set mint as open.
+
 ### When adding functionality
 
 We now run through the primary contract instead of deploying a new contract that focuses on funneling our holders and their money into an entirely new collection. Yuck! Instead, we will be adding the update within the base contract. This means that everything will update within the primary collection and it is truly non-dillutive of all aspects! Finally, holders are not punished as builders, build.
+
+1. Load the generation.
+2. Enable the generation to allow for token evolution.
 
 #### Loading a generation
 
@@ -57,8 +66,18 @@ We now run through the primary contract instead of deploying a new contract that
 | uint256     |    cost                  | (0 -> x - 1)    | The one-time cost of generation access            |
 | uint256     |    evolutionClosure      | (0 -> x - 1)    | If zero, infinite time to claim.                  |
 | string      |    baseURI               | ipfs://..       | The off-chain URI of the metadata                 |
-
+| uint256     |    top                   | (0 -> x - 1)    | The top token that has been revealed              |
+| uint256     |    offset                | (0 -> x - 1)    | The baseToken offset of the generation metadata   | 
+ 
 Beyond that, you should be able to walk yourself the rest of the way through it. This code is not exceptionally complicated. Just steal the code and implement it into the market please. We seriously cannot allow Doodles to spread this falsehood so far that it brings us into a new cycle. With that, enough talk already, can we just run the code...
+
+### When revealing
+
+In the base of the contract lies a baseUnrevealedURI which is used any time a token is in the evolution state before a generation has been revealed. This has been made to be constant through all generations as it is kind of wasteful and doesn't change anything beyind aesthetic preference which is not extremely powerful while in the context of this conversation.
+
+Note: This has been placed at the bottom of the documentation however there may be instances in which a project prefers to reveal before the sale even starts. That is entirely supported.
+
+1. Set top revealed token
 
 ## Running The Project
 
@@ -78,4 +97,6 @@ Inside the contract every function has been documented so that you can follow al
 
 Non-dilutive 721 tokens can exist. Teams can easily build around this concept. Teams can additionally  still monetize the going ons and hard work of their team. However, that does not need to come at the cost of their holders. As it stands every token drop following the initial is a holder mining experience in which every single holders is impacted by the lower market concentration of liquidty and attention.
 
-I didn't bother optimizing the base 721 contracts. If this actually ends up being seen by more than 5 people I'll update that.
+I didn't bother optimizing the base 721 contract nor any of the primary functionality. Readability > gas in this case as this is not a repository I will be launching and instead is purely a conversational/open-source option that you can utilize.
+
+If this actually ends up being seen by more than 5 people I'll update that.

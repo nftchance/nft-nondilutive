@@ -9,8 +9,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
-import "hardhat/console.sol";
-
 error MintExceedsMaxSupply();
 error MintCostMismatch();
 error MintNotEnabled();
@@ -88,7 +86,7 @@ contract NonDilutive is
             ,_baseURI
         );
 
-        _mint(msg.sender, 0);
+        _mint(msg.sender, 0); // Mints the creator their token. Equitable ownership.
     }
 
     /**
@@ -272,8 +270,10 @@ contract NonDilutive is
         virtual 
         onlyOwner 
     {
+        Generation storage generation = generations[_layerId];
+
         // Make sure that we are not overwriting an existing layer.
-        if(generations[_layerId].loaded) revert GenerationAlreadyLoaded();
+        if(generation.loaded) revert GenerationAlreadyLoaded();
 
         generations[_layerId] = Generation({
              loaded: true
