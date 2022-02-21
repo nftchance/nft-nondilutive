@@ -116,7 +116,7 @@ contract NonDilutive is
                 abi.encodePacked(
                      _layerId
                     ,block.number
-                    ,block.timestamp
+                    ,block.difficulty
                 )
             )
         ) % MAX_SUPPLY + 1;
