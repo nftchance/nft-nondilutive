@@ -22,6 +22,10 @@ Essentially, with Mimetic Metadata we stop printing new tokens and instead pack 
 
 >  The extendable 'Generations' wrap the token metadata within the content to remove the need  of dropping another token into the collection. By doing this, that does not inherently mean the metadata is mutable beyond the extent that the token holder can change the active metadata. The underlying generations still much exist and can be configured in a  way that allows accessing them again if desired. However, there does also exist the  ability to have truly immutable layers that cannot be removed. (If following this implementation it is vitally noted that object permanence must be achieved from day one. A project CANNOT implement this on a mutable URL that is massive holder-trust betrayal.)
 
+## Infographic
+
+![Infographic of implementation](https://i.imgur.com/5MXG0Wy.png)
+
 ## Implementation Documentation
 
 This contract has been built to perfectly illustrate that absolutely no sacrifices are made when implementing this structure. Meanwhile, the holders and project owners gain and incredible amount of security and maintainbility.
