@@ -22,9 +22,6 @@ Essentially, with Mimetic Metadata we stop printing new tokens and instead pack 
 
 >  The extendable 'Generations' wrap the token metadata within the content to remove the need  of dropping another token into the collection. By doing this, that does not inherently mean the metadata is mutable beyond the extent that the token holder can change the active metadata. The underlying generations still much exist and can be configured in a  way that allows accessing them again if desired. However, there does also exist the  ability to have truly immutable layers that cannot be removed. (If following this implementation it is vitally noted that object permanence must be achieved from day one. A project CANNOT implement this on a mutable URL that is massive holder-trust betrayal.)
 
-## Infographic
-
-![Infographic of implementation](https://i.imgur.com/5MXG0Wy.png)
 
 ## Implementation Documentation
 
@@ -104,3 +101,7 @@ Non-dilutive 721 tokens can exist. Teams can easily build around this concept. T
 I didn't bother optimizing the base 721 contract nor any of the primary functionality. Readability > gas in this case as this is not a repository I will be launching and instead is purely a conversational/open-source option that you can utilize.
 
 If this actually ends up being seen by more than 5 people I'll update that.
+
+## Infographic
+
+![Infographic of implementation](https://i.imgur.com/5MXG0Wy.png)
