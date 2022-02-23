@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.7;
 
+import { MimeticMetadata } from "./Mimetics/MimeticMetadata.sol";
 import { INonDilutive } from "./INonDilutive.sol";
+
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -51,29 +53,25 @@ error WithdrawFailed();
  *         A project CANNOT implement this on a mutable URL that is massive holder-trust betrayal.)
  */
 contract NonDilutive is 
-     INonDilutive
-    ,ERC721Enumerable
-    ,Ownable
+     ERC721Enumerable
+    ,MimeticMetadata
+    ,INonDilutive
 {
     using Strings for uint256;
 
-    uint256 public constant MAX_SUPPLY = 900;
     uint256 public constant COST = .02 ether;
 
-    string public baseUnrevealedURI;
     bool public mintOpen;
-
-    mapping(uint256 => Generation) public generations;
-
-    mapping(uint256 => uint256) tokenToGeneration;
-    mapping(bytes32 => uint256) tokenGenerationToFunded;
 
     constructor(
          string memory _name
         ,string memory _symbol
         ,string memory _baseUnrevealedURI
         ,string memory _baseURI
+        ,uint256 _MAX_SUPPLY
     ) ERC721(_name, _symbol) {
+        MAX_SUPPLY = _MAX_SUPPLY;
+
         baseUnrevealedURI = _baseUnrevealedURI;
 
         loadGeneration(
@@ -89,102 +87,7 @@ contract NonDilutive is
         _mint(msg.sender, 0); // Mints the creator their token. Equitable ownership.
     }
 
-    /**
-     * @notice Generates a psuedo-random number that is to be used for the 
-     *         metadata offset. In production, this realistically should be an
-     *         implementation with VRF (Chainlink). It is incredibly easy to setup
-     *         and use, additionally with this structure there is no reason it needs 
-     *         to be expensive.
-     * @dev A focus of psuedo-random number quality has not been a focus. In order for
-     *         for the modulus to even return a fair chance for all #s it must be a 
-     *         power of 2.
-     * @param _layerId the generation the offset is used for.
-     */
-    function _getOffset(
-        uint256 _layerId
-    ) 
-        internal 
-        view 
-        returns (
-            uint256
-        ) 
-    {
-        return uint256(
-            keccak256(
-                abi.encodePacked(
-                     msg.sender
-                    ,_layerId
-                    ,block.number
-                    ,block.difficulty
-                )
-            )
-        ) % MAX_SUPPLY + 1;
-    }
-
-    /**
-     * @notice Allows for generation-level reveal. That means that just because the assets
-     *         in Generation Zero have been revealed, Generation One is not revealed. The
-     *         reveal mechanisms of them are entirely separate. Precisely like a normal
-     *         ERC721 token.
-     * @notice Cannot be reverted once a token has been revealed. No mutable metadata!
-     * @dev With this implementation it is vital that you implement and utilize an offset.
-     *         This is not something that you can skip because you don't want to work
-     *         with Chainlink or another VRF method. Even if not VRF, you must implement
-     *         at least a generally fair offset mechanism. Holders for the most part
-     *         do not know how Solidity works. That does not mean you take advantage of that.
-     * @param _layerId the generation that is being revealed
-     * @param _topTokenId the highest token id to be revealed
-     */
-    function setRevealed(
-         uint256 _layerId
-        ,uint256 _topTokenId
-    )
-        override
-        public
-        virtual
-        onlyOwner
-    {
-        Generation storage generation = generations[_layerId];
-
-        // Make sure the generation has been loaded and enabled
-        if(!generation.loaded || !generation.enabled) revert GenerationNotEnabled();
-
-        // Make sure that the amount of tokens revealed is not being lowered
-        if(_topTokenId < generation.top) revert TokenRevealed();
-
-        // Make sure that we create the offset the first time a generation is revealed
-        if(generation.offset == 0) {
-            generation.offset = _getOffset(_layerId);
-        } 
-
-        // Finally set the top token of the generation
-        generation.top = _topTokenId;
-    }
-
-    /**
-     * @notice Allows users to calculate the metadata id that is associated with this token
-     *         at all times on any of the layers. This is not code that validates the input
-     *         as it operates like an internal function but has been exposed to holders
-     *         for UX purposes.
-     * @param _offset how far the ids have been shifted
-     * @param _tokenId the token we are getting the generational data for
-     */
-    function getGenerationToken(
-         uint256 _offset
-        ,uint256 _tokenId
-    ) 
-        override
-        public
-        virtual
-        pure
-        returns (
-            uint256 generationTokenId
-        )
-    { 
-        generationTokenId = _tokenId + _offset - 1;
-        if (generationTokenId > MAX_SUPPLY ) generationTokenId - MAX_SUPPLY - 1;
-    }
-
+    
     /**
      * @notice Function that controls which metadata the token is currently utilizing.
      *         By default every token is using layer zero which is loaded during the time
@@ -207,31 +110,25 @@ contract NonDilutive is
     {
         // Make sure that the token has been minted
         if(!_exists(_tokenId)) revert TokenNonExistent();
-        uint256 activeGenerationLayer = tokenToGeneration[_tokenId];
-
-        // Make sure that the token has been revealed
-        Generation memory activeGeneration = generations[activeGenerationLayer];
+        return _tokenURI(_tokenId);
+    }
 
         /**
-         * @dev Returns a non-token specific URI that is to be used for unrevealed tokens. This is
-         *      not a case where every generation has it's own unrevealed URI. All generations 
-         *      utilize the same one so that "evolution in progress" is consistent across the collection.
-         */
-        if(_tokenId > activeGeneration.top) return baseUnrevealedURI;
-
-        // Make sure the baseTokenId is within the bounds of MAX_SUPPLY and fix if not
-        // Apply the generational offset to the tokens metadata
-        uint256 generationTokenId = getGenerationToken(
-             activeGeneration.offset
-            ,_tokenId
-        );
-        
-        return string(
-            abi.encodePacked(
-                 activeGeneration.baseURI
-                ,generationTokenId.toString()
-            )
-        );
+     * @notice Allows any user to see the layer that a token currently has enabled.
+     */
+    function getTokenGeneration(
+        uint256 _tokenId
+    )
+        override
+        public
+        virtual
+        view
+        returns(
+            uint256
+        )
+    {
+        if(!_exists(_tokenId)) revert TokenNonExistent();
+        return _getTokenGeneration(_tokenId);
     }
 
     /**
@@ -270,106 +167,6 @@ contract NonDilutive is
     }
 
     /**
-     * @notice Allows the project owner to establish a new generation. Generations are enabled by 
-     *      default. With this we initialize the generation to be loaded.
-     * @dev _name is passed as a param, if this is not needed; remove it. Don't be superfluous.
-     * @dev only accessed by owner of contract
-     * @param _layerId the z-depth of the metadata being loaded
-     * @param _enabled a generation can be connected before a token can utilize it
-     * @param _locked can this layer be disabled by the project owner
-     * @param _sticky can this layer be removed by the holder
-     * @param _cost the focus cost
-     * @param _evolutionClosure if set to zero, disabled. If not set to zero is the last timestamp
-     *                          at which someone can focus this generation.
-     * @param _baseURI the internet URI the metadata is stored on
-     */
-    function loadGeneration(
-         uint256 _layerId
-        ,bool _enabled
-        ,bool _locked
-        ,bool _sticky
-        ,uint256 _cost
-        ,uint256 _evolutionClosure
-        ,string memory _baseURI
-    )
-        override 
-        public 
-        virtual 
-        onlyOwner 
-    {
-        Generation storage generation = generations[_layerId];
-
-        // Make sure that we are not overwriting an existing layer.
-        if(generation.loaded) revert GenerationAlreadyLoaded();
-
-        generations[_layerId] = Generation({
-             loaded: true
-            ,enabled: _enabled
-            ,locked: _locked
-            ,sticky: _sticky
-            ,cost: _cost
-            ,evolutionClosure: _evolutionClosure
-            ,baseURI: _baseURI
-            ,offset: 0
-            ,top: 0
-        });
-    }
-
-    /**
-     * @notice Used to toggle the state of a generation. Disable generations cannot be focused by 
-     *         token holders.
-     */
-    function toggleGeneration(
-        uint256 _layerId
-    )
-        override 
-        public
-        virtual
-        onlyOwner 
-    {
-        Generation memory generation = generations[_layerId];
-
-        // Make sure that the token isn't locked (immutable but overlapping keywords is spicy)
-        if(generation.enabled && generation.locked) revert GenerationNotToggleable();
-
-        generations[_layerId].enabled = !generation.enabled;
-    }
-
-    /**
-     * @notice Allows any user to see the layer that a token currently has enabled.
-     */
-    function getTokenGeneration(
-        uint256 _tokenId
-    )
-        override
-        public
-        virtual
-        view
-        returns(
-            uint256
-        )
-    {
-        if(!_exists(_tokenId)) revert TokenNonExistent();
-        return tokenToGeneration[_tokenId];       
-    }
-
-    /**
-     *  @notice Internal view function to clean up focusGeneration(). Pretty useless but the
-     *          function was getting out of control.
-     */
-    function _generationEnabled(Generation memory generation) 
-        internal 
-        view 
-        returns (
-            bool
-        ) 
-    {
-        if(!generation.enabled) return false;
-        if(generation.evolutionClosure != 0) return block.timestamp < generation.evolutionClosure;
-        return true;
-    }
-
-    /**
      * @notice Function that allows token holders to focus a generation and wear their skin.
      *         This is not in control of the project maintainers once the layer has been 
      *         initialized.
@@ -391,29 +188,7 @@ contract NonDilutive is
         // Make sure the owner of the token is operating
         if(ownerOf(_tokenId) != msg.sender) revert TokenOwnerMismatch();
 
-        uint256 activeGenerationLayer = tokenToGeneration[_tokenId]; 
-        if(activeGenerationLayer == _layerId) revert GenerationNotDifferent();
-        
-        // Make sure that the generation has been enabled
-        Generation memory generation = generations[_layerId];
-        if(!_generationEnabled(generation)) revert GenerationNotEnabled();
-
-        // Make sure a user can't take off a sticky generation
-        Generation memory activeGeneration = generations[activeGenerationLayer];
-        if(activeGeneration.sticky && _layerId < activeGenerationLayer) revert GenerationNotDowngradable(); 
-
-        // Make sure they've supplied the right amount of money to unlock access
-        bytes32 tokenIdGeneration = keccak256(abi.encodePacked(_tokenId, _layerId));
-        if(msg.value + tokenGenerationToFunded[tokenIdGeneration] != generation.cost) revert GenerationCostMismatch();
-        tokenGenerationToFunded[tokenIdGeneration] = msg.value;
-
-        // Finally evolve to the generation
-        tokenToGeneration[_tokenId] = _layerId;
-
-        emit GenerationChange(
-             _layerId
-            ,_tokenId
-        );
+        _focusGeneration(_layerId, _tokenId);
     }
 
     /**
@@ -443,30 +218,5 @@ contract NonDilutive is
             value: address(this).balance
         }("");
         if(!owner) revert WithdrawFailed();
-    }
-
-    /**
-     * @notice on chain function to retrieve the tokens that an address owns
-     * @param _owner the holder we are retrieving the tokens for
-     * @return tokenIds this address currently holds
-     */
-    function walletOfOwner(address _owner) 
-        public 
-        view 
-        returns (
-            uint256[] memory
-        ) 
-    {
-        uint256 tokenCount = balanceOf(_owner);
-        if (tokenCount == 0) return new uint256[](0);
-
-        uint256[] memory tokenIds = new uint256[](tokenCount);
-        for (uint256 i; i < tokenCount; i++) {
-            tokenIds[i] = tokenOfOwnerByIndex(
-                 _owner
-                ,i
-            );
-        }
-        return tokenIds;
     }
 }

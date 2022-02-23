@@ -20,7 +20,8 @@ describe("Non-Dilutive Token", () => {
             "Non-Dilutive",
             "No-D",
             "ipfs://unrevealed/",
-            "ipfs://generation-zero/"
+            "ipfs://generation-zero/",
+            900
         );
 
         contract = await contract.deployed();
