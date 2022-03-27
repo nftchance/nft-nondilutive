@@ -15,6 +15,12 @@ describe("Non-Dilutive Token", () => {
 
         priceInWei = "20000000000000000"
 
+        MigratedContract = await ethers.getContractFactory("MockToken");
+        migratedContract = await MigratedContract.deploy(
+            "migrate",
+            "mgrt"
+        )
+
         Contract = await ethers.getContractFactory("NonDilutive");
         contract = await Contract.deploy(
             "Non-Dilutive",
